@@ -1,15 +1,13 @@
 """Agent definitions for the multi-agent research pipeline."""
 
-from crewai import Agent
-from langchain_groq import ChatGroq
+from crewai import Agent, LLM
 
 from tools import tavily_search
 
-
-def get_llm() -> ChatGroq:
-    """Create a Groq-backed LLM instance."""
-    return ChatGroq(
-        model="qwen-qwq-32b",
+# Use crewai.LLM instead of langchain_groq.ChatGroq
+def get_llm() -> LLM:
+    return LLM(
+        model="groq/llama-3.3-70b-versatile",
         temperature=0.2,
     )
 
@@ -89,6 +87,10 @@ def writer_agent() -> Agent:
             "Professional technical writer who makes complex research "
             "accessible."
         ),
-        llm=get_llm(),
+        llm=LLM(
+            model="gemini/gemini-3-flash-preview",
+            temperature=0.2,
+            api_key=os.getenv("GEMINI_API_KEY"),
+        ),
         verbose=True,
     )

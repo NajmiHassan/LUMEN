@@ -1,6 +1,7 @@
 """Streamlit interface for the CrewAI research assistant (LUMEN)."""
 
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -131,7 +132,7 @@ def _run_next_pipeline_step() -> None:
         return
 
     topic = st.session_state["pipeline_topic"]
-    prior = st.session_state["pipeline_prior"]
+    prior = st.session_state["pipeline_prior"]  # mutable dict, update in place
     _, label_human = _AGENT_ORDER[ne]
 
     try:
@@ -139,6 +140,7 @@ def _run_next_pipeline_step() -> None:
 
         with st.spinner(f"{label_human} is researching…"):
             out = run_research_phase(topic, ne, prior)
+            st.session_state["pipeline_prior"] = prior  # write back updated prior
 
         if ne == 4:
             st.session_state["report"] = out.strip()
@@ -163,6 +165,7 @@ def _run_next_pipeline_step() -> None:
             "Failed during research pipeline. "
             f"Verify API keys and connectivity. Details: {exc}"
         )
+        _log_progress(f"{label_human} Agent failed: {exc}", "Error")
         st.session_state["current_agent"] = "Error"
         st.session_state["is_running"] = False
 
@@ -172,6 +175,8 @@ def _run_next_pipeline_step() -> None:
             st.session_state["agent_ui"][_AGENT_ORDER[i][0]] = "done"
         for j in range(ne + 1, len(_AGENT_ORDER)):
             st.session_state["agent_ui"][_AGENT_ORDER[j][0]] = "waiting"
+        print(traceback.format_exc())
+        st.rerun()
 
 
 def _inject_styles() -> None:
@@ -325,11 +330,11 @@ def main() -> None:
         with st.container(border=True):
             _render_agent_progress_panel()
 
-    if st.session_state["error_message"]:
-        st.error(st.session_state["error_message"])
-
     # Run one Crew phase per rerun; spinner here stays near Agent Progress (not at page bottom).
     _run_next_pipeline_step()
+
+    if st.session_state["error_message"]:
+        st.error(st.session_state["error_message"])
 
     _show_log = (
         st.session_state.get("research_ui_active")

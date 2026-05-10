@@ -6,3 +6,5 @@ streamlit
 python-dotenv
 langchain-groq
 python-docx
+litellm
+google-generativeai
